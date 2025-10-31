@@ -1,0 +1,13 @@
+# Virtual Environment
+venv/
+env/
+.env
+
+# Yolo specific
+violations/
+*.pyc
+__pycache__/
+
+# IDE files
+.idea/
+.vscode/

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Safety Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-gap: 20px;
+            height: 100vh;
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.violation {
+            background: #ef4444;
+            animation: pulse-fast 0.5s infinite;
+        }
+
+        .status-dot.processing {
+            background: #f59e0b;
+            animation: pulse-fast 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse-fast {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .video-container {
+            position: relative;
+            flex-grow: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .violation-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(45deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9));
+            color: white;
+            padding: 15px 20px;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        .violation-overlay.show {
+            transform: translateY(0);
+        }
+
+        .violation-overlay h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stats-panel, .violations-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stats-panel {
+            min-height: 200px;
+        }
+
+        .panel-header {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #e0e7ff;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #cbd5e1;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .violations-panel {
+            flex-grow: 1;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .violations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .violation-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #ef4444;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(20px);
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        .violation-item:hover {
+            background: rgba(0, 0, 0, 0.4);
+            transform: translateX(-2px);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .violation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .violation-id {
+            font-weight: 700;
+            color: #ef4444;
+        }
+
+        .violation-time {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .violation-summary {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #e2e8f0;
+        }
+
+        .violation-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+            padding: 40px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .connection-status.connected {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 2fr 1fr;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .sidebar {
+                flex-direction: row;
+            }
+            
+            .stats-panel, .violations-panel {
+                flex: 1;
+            }
+            
+            .violations-panel {
+                max-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .sidebar {
+                flex-direction: column;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .violations-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .violations-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .violations-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .violations-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        <div class="loading-spinner"></div> Connecting...
+    </div>
+
+    <div class="container">
+        <div class="video-section">
+            <div class="header">
+                <h1>🛡️ Video Safety Monitor</h1>
+            </div>
+            
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Initializing...</span>
+                </div>
+                <div id="frameInfo">Frame: 0 | Processing: No</div>
+            </div>
+            
+            <div class="video-container">
+                <img src="/video_feed" alt="Live Camera Feed" class="video-stream" id="videoStream">
+                <div class="violation-overlay" id="violationOverlay">
+                    <h3><span class="alert-icon">⚠️</span> VIOLATION DETECTED!</h3>
+                    <p id="violationMessage">Safety violation in progress...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="stats-panel">
+                <h2 class="panel-header">📊 Statistics</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Total Violations:</span>
+                    <span class="stat-value" id="totalViolations">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Violation:</span>
+                    <span class="stat-value" id="lastViolationTime">Never</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Current Status:</span>
+                    <span class="stat-value" id="currentStatus">Monitoring</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">AI Mode:</span>
+                    <span class="stat-value" id="aiMode">SmolVLM2</span>
+                </div>
+            </div>
+
+            <div class="violations-panel">
+                <h2 class="panel-header">🚨 Recent Violations</h2>
+                <div class="violations-list" id="violationsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛡️</div>
+                        <p>No violations detected yet.<br>System is monitoring...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SafetyMonitor {
+            constructor() {
+                this.socket = null;
+                this.violations = [];
+                this.stats = {
+                    total_violations: 0,
+                    last_violation_time: null,
+                    current_status: 'monitoring'
+                };
+                this.violationTimeout = null;
+                
+                this.initializeElements();
+                this.connectWebSocket();
+                this.setupEventListeners();
+            }
+
+            initializeElements() {
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                this.violationOverlay = document.getElementById('violationOverlay');
+                this.violationMessage = document.getElementById('violationMessage');
+                this.violationsList = document.getElementById('violationsList');
+                this.totalViolations = document.getElementById('totalViolations');
+                this.lastViolationTime = document.getElementById('lastViolationTime');
+                this.currentStatus = document.getElementById('currentStatus');
+                this.videoStream = document.getElementById('videoStream');
+            }
+
+            connectWebSocket() {
+                console.log('Connecting to WebSocket...');
+                this.socket = io();
+
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.updateConnectionStatus(true);
+                    this.updateStatus('monitoring', 'Connected - Monitoring for violations');
+                });
+
+                this.socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    this.updateConnectionStatus(false);
+                    this.updateStatus('disconnected', 'Connection lost - Reconnecting...');
+                });
+
+                this.socket.on('violation_detected', (data) => {
+                    console.log('Violation detected:', data);
+                    this.handleViolationDetected(data);
+                });
+
+                this.socket.on('status_update', (data) => {
+                    console.log('Status update:', data);
+                    this.handleStatusUpdate(data);
+                });
+
+                this.socket.on('status', (data) => {
+                    console.log('Initial status:', data);
+                    if (data.stats) {
+                        this.updateStats(data.stats);
+                    }
+                });
+            }
+
+            updateConnectionStatus(connected) {
+                if (connected) {
+                    this.connectionStatus.className = 'connection-status connected';
+                    this.connectionStatus.innerHTML = '✓ Connected';
+                } else {
+                    this.connectionStatus.className = 'connection-status disconnected';
+                    this.connectionStatus.innerHTML = '✗ Disconnected';
+                }
+            }
+
+            updateStatus(status, message) {
+                this.statusText.textContent = message;
+                
+                // Update status dot
+                this.statusDot.className = 'status-dot';
+                if (status === 'violation_detected' || status === 'violation') {
+                    this.statusDot.classList.add('violation');
+                } else if (status === 'processing_violation' || status === 'processing') {
+                    this.statusDot.classList.add('processing');
+                }
+                
+                // Update current status display
+                this.currentStatus.textContent = this.formatStatus(status);
+            }
+
+            formatStatus(status) {
+                const statusMap = {
+                    'monitoring': 'Monitoring',
+                    'violation_detected': 'Violation Detected',
+                    'processing_violation': 'Processing...',
+                    'processing': 'Processing...',
+                    'error': 'Error',
+                    'disconnected': 'Disconnected'
+                };
+                return statusMap[status] || status;
+            }
+
+            handleViolationDetected(violationData) {
+                // Add to violations list
+                this.violations.unshift(violationData);
+                if (this.violations.length > 10) {
+                    this.violations.pop();
+                }
+
+                // Update stats
+                this.updateStats({
+                    total_violations: violationData.id,
+                    last_violation_time: violationData.timestamp,
+                    current_status: 'violation_detected'
+                });
+
+                // Show violation overlay
+                this.showViolationAlert(violationData);
+
+                // Update violations list
+                this.renderViolationsList();
+
+                // Update status
+                this.updateStatus('violation_detected', 'VIOLATION DETECTED - Processing...');
+            }
+
+            handleStatusUpdate(statusData) {
+                this.updateStatus(statusData.status, statusData.message);
+                
+                if (statusData.stats) {
+                    this.updateStats(statusData.stats);
+                }
+
+                // Hide violation overlay if back to monitoring
+                if (statusData.status === 'monitoring' && this.violationOverlay.classList.contains('show')) {
+                    setTimeout(() => {
+                        this.hideViolationAlert();
+                    }, 3000); // Keep alert visible for 3 more seconds
+                }
+            }
+
+            showViolationAlert(violationData) {
+                this.violationMessage.textContent = violationData.summary;
+                this.violationOverlay.classList.add('show');
+
+                // Auto-hide after 5 seconds
+                if (this.violationTimeout) {
+                    clearTimeout(this.violationTimeout);
+                }
+                this.violationTimeout = setTimeout(() => {
+                    this.hideViolationAlert();
+                }, 5000);
+
+                // Add screen flash effect
+                document.body.style.animation = 'none';
+                document.body.offsetHeight; // Trigger reflow
+                document.body.style.animation = 'flash 0.3s ease-in-out';
+            }
+
+            hideViolationAlert() {
+                this.violationOverlay.classList.remove('show');
+                if (this.violationTimeout) {
+                    clearTimeout(this.violationTimeout);
+                    this.violationTimeout = null;
+                }
+            }
+
+            updateStats(stats) {
+                this.stats = { ...this.stats, ...stats };
+                
+                this.totalViolations.textContent = this.stats.total_violations || 0;
+                this.lastViolationTime.textContent = this.stats.last_violation_time || 'Never';
+                this.currentStatus.textContent = this.formatStatus(this.stats.current_status);
+            }
+
+            renderViolationsList() {
+                if (this.violations.length === 0) {
+                    this.violationsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🛡️</div>
+                            <p>No violations detected yet.<br>System is monitoring...</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.violationsList.innerHTML = this.violations.map((violation, index) => `
+                    <div class="violation-item" style="animation-delay: ${index * 0.1}s">
+                        <div class="violation-header">
+                            <span class="violation-id">Violation #${violation.id}</span>
+                            <span class="violation-time">${this.formatTime(violation.timestamp)}</span>
+                        </div>
+                        <div class="violation-summary">${violation.summary}</div>
+                        <span class="violation-badge">${violation.severity || 'HIGH'}</span>
+                    </div>
+                `).join('');
+            }
+
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            setupEventListeners() {
+                // Handle video stream errors
+                this.videoStream.addEventListener('error', (e) => {
+                    console.error('Video stream error:', e);
+                    this.updateStatus('error', 'Video stream error - Check camera connection');
+                });
+
+                this.videoStream.addEventListener('load', () => {
+                    console.log('Video stream loaded');
+                });
+
+                // Handle page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        // Reconnect if needed when page becomes visible
+                        if (!this.socket.connected) {
+                            this.socket.connect();
+                        }
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideViolationAlert();
+                    }
+                });
+            }
+
+            // Method to fetch initial data
+            async fetchInitialData() {
+                try {
+                    const response = await fetch('/api/violations');
+                    const data = await response.json();
+                    
+                    if (data.violations && data.violations.length > 0) {
+                        this.violations = data.violations.slice(0, 10);
+                        this.renderViolationsList();
+                    }
+                    
+                    if (data.stats) {
+                        this.updateStats(data.stats);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch initial data:', error);
+                }
+            }
+        }
+
+        // Add flash animation to CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes flash {
+                0% { filter: brightness(1); }
+                50% { filter: brightness(1.2) hue-rotate(10deg); }
+                100% { filter: brightness(1); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Safety Monitor...');
+            const monitor = new SafetyMonitor();
+            
+            // Fetch initial data after a short delay
+            setTimeout(() => {
+                monitor.fetchInitialData();
+            }, 1000);
+        });
+
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+        });
+
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+    </script>
+</body>
+</html>

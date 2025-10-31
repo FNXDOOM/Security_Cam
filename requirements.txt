@@ -1,0 +1,19 @@
+flask
+flask_socketio
+flask_cors
+requests
+numpy
+opencv-python
+ultralytics
+# Optional AI/VLM dependencies
+torch
+transformers
+pillow
+asgiref==3.9.1
+Django==5.2.5
+djangorestframework==3.16.1
+pillow==11.3.0
+psycopg2-binary==2.9.10
+sqlparse==0.5.3
+typing_extensions==4.14.1
+tzdata==2025.2
