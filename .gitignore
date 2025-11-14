@@ -58,3 +58,6 @@ Backend/media/snapshots/
 .env.development.local
 .env.test.local
 .env.production.local
+
+#node
+node_modules/
