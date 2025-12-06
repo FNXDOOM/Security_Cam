@@ -30,7 +30,7 @@ def detection_loop():
 
     print("Starting threaded video stream...")
     try:
-        state.vs = VideoStream(src=0).start()
+        state.vs = VideoStream(src="http://192.168.1.7:4747/video").start()
         time.sleep(2.0)
     except Exception as e:
         print(f"❌ Failed to initialize video stream: {e}")

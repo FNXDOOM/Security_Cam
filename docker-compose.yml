@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: securitycam
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - security_net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: security_cam_backend
+    environment:
+      - DB_NAME=securitycam
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Backend:/app/Backend
+    networks:
+      - security_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: security_cam_frontend
+    ports:
+      - "5000:5000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - VIDEO_SOURCE=http://192.168.1.7:4747/video   # ← DroidCam 
+    volumes:
+      - .:/app
+    depends_on:
+      - backend
+    networks:
+      - security_net
+
+volumes:
+  postgres_data:
+
+networks:
+  security_net:
+    driver: bridge

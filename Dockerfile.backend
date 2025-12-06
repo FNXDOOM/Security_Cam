@@ -1,0 +1,32 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+##############################
+# System dependencies
+##############################
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+##############################
+# Install Python dependencies
+##############################
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+##############################
+# Copy backend code
+##############################
+COPY Backend/ ./Backend/
+
+WORKDIR /app/Backend
+
+EXPOSE 8000
+
+##############################
+# Run migrations, then start Django
+##############################
+CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]

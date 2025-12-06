@@ -4,7 +4,7 @@ from collections import deque
 
 class VideoStream:
     """A class to read frames from a camera in a dedicated thread."""
-    def __init__(self, src=0):
+    def __init__(self, src="http://192.168.1.7:4747/video"):
         self.stream = cv2.VideoCapture(src)
         if not self.stream.isOpened():
             print(f"Error: Could not open video source at {src}")
