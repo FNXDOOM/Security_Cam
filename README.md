@@ -80,6 +80,10 @@ The Flask frontend will be available at http://127.0.0.1:5000/
 
 You can modify camera settings and detection parameters in the `Frontend/config.py` file.
 
-## License
+## Note:
 
-[Your License Here]
+- Nivida RTX Gpu is necessary to run this project. 
+- After git cloning the repo first install the cuda and tensort library for your specific gpu version then pip install for requirements.txt file.
+- If don't have rtx gpu use .pt file and in config.py file make the changes in code to use .pt to run this project.
+- Model used in this project is used to detect person and weapon.
+
