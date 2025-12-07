@@ -1,0 +1,26 @@
+# Global ignores
+.vscode/
+.git/
+__pycache__/
+*.pyc
+
+# DO NOT include virtual environments
+venv/
+env/
+
+
+# Common large files to ignore
+*.mp4
+*.avi
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.log
+*.db
+*.sqlite3
+
+# Ignore docker metadata
+docker-compose.yml
+Dockerfile.frontend
+Dockerfile.backend

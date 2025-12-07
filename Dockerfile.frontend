@@ -1,11 +1,11 @@
-# NVIDIA TensorRT base image (supports GPU + TRT engine)
+# NVIDIA TensorRT base image 
 FROM nvcr.io/nvidia/tensorrt:25.10-py3
 
 WORKDIR /app
 
-#########################################
-# Install system dependencies (Ubuntu 24.04 compatible)
-#########################################
+
+#  system dependencies (Ubuntu 24.04 compatible)
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -14,21 +14,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
-#########################################
-# Install Python requirements
-#########################################
-COPY requirements.txt .
+# Install Python dependencies
+# frontend requirements file
+COPY Frontend/requirements.txt ./requirements.txt
+
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-#########################################
-# Copy full project
-#########################################
-COPY . .
+# Copy ONLY the Frontend source code
+COPY Frontend/ ./Frontend
 
-#########################################
+
 # Switch to frontend folder
-#########################################
+
 WORKDIR /app/Frontend
 
 EXPOSE 5000
