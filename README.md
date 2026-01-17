@@ -1,89 +1,16 @@
-# Security Camera System
+# React + Vite
 
-A comprehensive security camera system with motion detection, AI-powered object recognition, and alert management capabilities.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Project Structure
+Currently, two official plugins are available:
 
-- **Frontend**: Flask-based web interface for camera monitoring and control
-- **Backend**: Django REST API for alert management and media storage
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Requirements
+## React Compiler
 
-- Python 3.10+
-- Dependencies listed in `requirements.txt`
-- CUDA-compatible GPU (recommended for optimal performance)
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Setup Instructions
+## Expanding the ESLint configuration
 
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd Security_cam
-```
-
-### 2. Set up virtual environment
-
-```bash
-python -m venv venv
-```
-
-#### Activate virtual environment
-
-On Windows:
-```bash
-venv\Scripts\activate
-```
-
-On macOS/Linux:
-```bash
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Start the Backend (Django)
-
-```bash
-cd Backend
-python manage.py migrate
-python manage.py runserver
-```
-
-The Django backend will be available at http://127.0.0.1:8000/
-
-### 5. Start the Frontend (Flask)
-
-Open a new terminal, activate the virtual environment, and run:
-
-```bash
-cd Frontend
-python app.py
-```
-
-The Flask frontend will be available at http://127.0.0.1:5000/
-
-## Features
-
-- Real-time video monitoring
-- Motion detection
-- Object recognition using YOLO
-- Video recording of security events
-- Alert management system
-- Web interface for monitoring and configuration
-
-## Configuration
-
-You can modify camera settings and detection parameters in the `Frontend/config.py` file.
-
-## Note:
-
-- Nivida RTX Gpu is necessary to run this project. 
-- After git cloning the repo first install the cuda and tensort library for your specific gpu version then pip install for requirements.txt file.
-- If don't have rtx gpu use .pt file and in config.py file make the changes in code to use .pt to run this project.
-- Model used in this project is used to detect person and weapon.
-
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
